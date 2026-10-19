@@ -57,18 +57,18 @@ export function createStudentView() {
         return section;
       };
 
-      const deviceStatusText = (status) => ({
+      const deviceStatusText = (status) => `${({
         compliant: '보안 기준 충족',
         noncompliant: '보안 기준 미충족',
         unknown: '확인 불가',
-      })[status] || '확인 불가';
+      })[status] || '확인 불가'}(${status ?? 'unknown'})`;
 
-      const sessionStatusText = (status) => ({
+      const sessionStatusText = (status) => `${({
         active: '활성',
         expired: '만료',
         revoked: '철회됨',
         unknown: '확인 불가',
-      })[status] || '확인 불가';
+      })[status] || '확인 불가'}(${status ?? 'unknown'})`;
 
       const accountSection = makeSection('계정', me);
       if (me?.status === 'ok' && me.data?.user) {
