@@ -340,6 +340,16 @@ export function createStudentView() {
         for (const key of ['access', 'session', 'device']) {
           appendTextField(detail, `${({ access: '접속', session: '세션', device: '기기' })[key]} 상태`, stateText(key, event.state?.[key]));
         }
+        if (Array.isArray(event.supportedActions) && event.supportedActions.length > 0) {
+          addText(detail, 'p', '아직 지원하지 않는 조치입니다. 조치 실행 연결은 준비 중입니다.');
+          for (const action of event.supportedActions) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.textContent = `${action} 미지원`;
+            button.disabled = true;
+            detail.append(button);
+          }
+        }
         detailMount.append(detail);
       };
 
@@ -383,7 +393,105 @@ export function createStudentView() {
       renderRows();
       return root;
     },
-    renderStatus() { return '학생 구현 대기: 기기·세션·알림과 연결 점검 상태를 구분하세요.'; },
+    renderStatus({ devices, sessions, notifications, diagnostics, mode } = {}) {
+      const root = document.createElement('div');
+      root.className = 'student-status-view';
+      const add = (parent, tag, text) => {
+        const node = document.createElement(tag);
+        node.textContent = String(text ?? '');
+        parent.append(node);
+        return node;
+      };
+      const value = (input) => typeof input === 'string' || typeof input === 'number'
+        ? String(input) : '확인 불가';
+      const showMode = (parent, current) => {
+        if (current === 'demo') add(parent, 'p', '예제 자료(demo)');
+        else if (current === 'disconnected') add(parent, 'p', '연결 없음(disconnected)');
+        else if (!current || current === 'unknown') add(parent, 'p', '연결 상태 확인 불가(unknown)');
+      };
+      showMode(root, mode);
+      const failure = (parent, resource, name) => {
+        const timeout = /TIMEOUT/.test(resource.error?.code ?? '');
+        add(parent, 'p', `${name}를 불러오지 못했습니다${timeout ? ' (시간 초과)' : ''}: ${value(resource.error?.message)}`);
+        add(parent, 'p', '다시 시도는 위쪽 다시 불러오기 버튼을 직접 누르세요.');
+      };
+      for (const [resource, name, empty, field] of [
+        [devices, '기기 정보', '등록된 기기가 없습니다.', 'label'],
+        [sessions, '세션 정보', '현재 연결 없음', 'id'],
+      ]) {
+        const section = document.createElement('section');
+        add(section, 'h3', name);
+        showMode(section, resource?.mode ?? mode);
+        if (field === 'id') add(section, 'p', '세션 조회 범위는 현재 검증된 연결 하나입니다.');
+        if (resource?.status === 'loading') add(section, 'p', `${name}를 불러오는 중입니다.`);
+        else if (resource?.status === 'error') failure(section, resource, name);
+        else if (resource?.status === 'ok' && Array.isArray(resource.data)) {
+          if (resource.data.length === 0) add(section, 'p', empty);
+          else {
+            const list = document.createElement('ul');
+            for (const row of resource.data) add(list, 'li', `${field}: ${value(row[field])} · status: ${value(row.status)}`);
+            section.append(list);
+          }
+        } else add(section, 'p', `${name}: 확인 불가. 조회 상태 또는 응답 형식을 확인할 수 없습니다.`);
+        root.append(section);
+      }
+      const notices = document.createElement('section');
+      add(notices, 'h3', '알림');
+      if (Array.isArray(notifications) && notifications.length === 0) add(notices, 'p', '알림 없음: 주의할 알림이 없습니다.');
+      else if (Array.isArray(notifications)) {
+        const list = document.createElement('ul');
+        for (const notice of notifications) {
+          const item = document.createElement('li');
+          for (const field of ['resource', 'code', 'message']) add(item, 'p', `${field}: ${value(notice[field])}`);
+          list.append(item);
+        }
+        notices.append(list);
+      } else add(notices, 'p', '알림: 확인 불가');
+      root.append(notices);
+      const diagnosticSection = document.createElement('section');
+      add(diagnosticSection, 'h3', '진단 정보');
+      showMode(diagnosticSection, diagnostics?.mode ?? mode);
+      let helpText = '';
+      if (diagnostics?.status === 'loading') add(diagnosticSection, 'p', '진단 정보를 불러오는 중입니다.');
+      else if (diagnostics?.status === 'error') failure(diagnosticSection, diagnostics, '진단 정보');
+      else if (diagnostics?.status === 'ok') {
+        const data = diagnostics.data;
+        if (data == null || (typeof data === 'object' && Object.keys(data).length === 0)) {
+          add(diagnosticSection, 'p', '표시할 진단 정보가 없습니다.');
+        } else if (typeof data !== 'object' || Array.isArray(data)) {
+          add(diagnosticSection, 'p', '진단 정보: 확인 불가. 응답 형식을 확인할 수 없습니다.');
+        } else {
+          // 전체 응답을 직렬화하지 않고 공식 계약의 여섯 필드만 선택한다.
+          const safe = {
+            requestId: value(data.requestId),
+            component: value(data.component),
+            version: value(data.version),
+            checkedAt: value(data.checkedAt),
+            engine: { mode: value(data.engine?.mode), code: value(data.engine?.code) },
+          };
+          for (const field of ['requestId', 'component', 'version', 'checkedAt']) add(diagnosticSection, 'p', `${field}: ${safe[field]}`);
+          for (const field of ['mode', 'code']) add(diagnosticSection, 'p', `engine.${field}: ${safe.engine[field]}`);
+          helpText = JSON.stringify(safe, null, 2);
+        }
+      } else add(diagnosticSection, 'p', '진단 정보: 확인 불가. 조회 상태를 확인할 수 없습니다.');
+      add(diagnosticSection, 'p', '도움 요청에 사용할 진단 정보의 지정된 여섯 필드만 복사합니다.');
+      const copy = add(diagnosticSection, 'button', '도움정보 복사');
+      copy.type = 'button';
+      copy.disabled = !helpText;
+      const feedback = add(diagnosticSection, 'p', '');
+      feedback.setAttribute('role', 'status');
+      copy.addEventListener('click', async () => {
+        if (!helpText) return;
+        try {
+          await navigator.clipboard.writeText(helpText);
+          feedback.textContent = '도움정보를 클립보드에 복사했습니다.';
+        } catch {
+          feedback.textContent = '도움정보를 복사하지 못했습니다. 브라우저의 클립보드 권한을 확인한 뒤 도움정보 복사 버튼을 직접 누르세요.';
+        }
+      });
+      root.append(diagnosticSection);
+      return root;
+    },
     renderVulnerabilities() { return '학생 구현 대기: 정확한 설치 버전·OSV 출처·조회 시각·부분 결과·조회 실패를 구분하세요.'; },
     renderAiConnection() { return '학생 구현 대기: 모델 응답 점검과 실제 사건 설명을 구분하고 AI 오류·취소·수동 복구를 안내하세요.'; },
     renderExplanation() { return '학생 구현 대기: 선택한 사건의 근거·규칙·현재 상태와 AI 설명을 연결하세요. 제안은 자동 실행하지 않습니다.'; },
