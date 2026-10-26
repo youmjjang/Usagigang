@@ -771,6 +771,122 @@ export function createStudentView() {
       }
       return root;
     },
-    renderAction() { return '학생 구현 대기: 현재 사건·조치·실제 대상·사람 확인·ACK와 원천 효과·unknown을 구분하세요.'; },
+    renderAction({ status, event, actionId, target, receipt, observation, message, confirmationExpiresAt, error } = {}) {
+      const root = document.createElement('div');
+      root.className = 'student-action-view';
+      const addText = (tag, text, className) => {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        node.textContent = String(text ?? '');
+        root.append(node);
+        return node;
+      };
+      const displayValue = (value) => {
+        if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+          return String(value);
+        }
+        return '확인 불가';
+      };
+      const safeCode = (value) => typeof value === 'string' && /^[A-Z][A-Z0-9_]{2,63}$/.test(value)
+        ? value : 'ACTION_RESULT_UNVERIFIED';
+      const safeMessage = (value) => {
+        if (typeof value !== 'string' || value.length === 0 || value.length > 500) {
+          return '안전한 메시지를 확인할 수 없습니다.';
+        }
+        const secretLike = /(?:Bearer\s+\S+|sk-(?:proj-|ant-|svcacct-)?[A-Za-z0-9_-]{8,}|-----BEGIN [A-Z ]*PRIVATE KEY-----|(?:api[_ -]?key|authorization|password|비밀번호|토큰)\s*[:=]\s*\S+)/i.test(value)
+          || /[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(value);
+        return secretLike ? '안전한 메시지를 확인할 수 없습니다.' : value;
+      };
+      const addIdentifier = (label, value) => {
+        if (value !== undefined && value !== null && value !== '') {
+          addText('p', `${label}: ${displayValue(value)}`);
+        }
+      };
+      const recheckGuidance = '성공이나 효과 없음으로 판단하지 마세요. 제공 화면의 「연동 시스템 결과만 재조회」로 결과를 확인하세요.';
+      const statusLabels = {
+        idle: '아직 미실행(idle)',
+        loading: '조치 준비 또는 결과 조회 중(loading)',
+        prepared: '준비됨·미실행(prepared)',
+        executing: '서버에 전달 중(executing)',
+        pending: '서버 접수·처리 중(pending)',
+        succeeded: '효과 확인(succeeded)',
+        denied: '거절(denied)',
+        failed: '실패(failed)',
+        unknown: '결과 불명(unknown)',
+        expired: '확인 기한 지남(expired)',
+        error: '요청 처리 안 됨(error)',
+      };
+
+      const knownStatus = Object.hasOwn(statusLabels, status);
+      const effectConfirmed = status === 'succeeded' && observation?.effectApplied === true;
+      const renderStatus = effectConfirmed
+        ? statusLabels.succeeded
+        : status === 'succeeded'
+          ? '결과 불명(unknown) · 효과 확인 조건을 충족하지 않았습니다.'
+          : knownStatus
+            ? statusLabels[status]
+            : `결과 불명(${displayValue(status)})`;
+      addText('p', `조치 상태: ${renderStatus}`, 'student-action-status');
+
+      if (status === 'idle') {
+        addText('p', '조치는 아직 실행되지 않았습니다.');
+      } else if (status === 'loading') {
+        addText('p', '조치 준비 또는 결과 조회를 진행하고 있습니다.');
+      } else if (status === 'prepared') {
+        addText('p', '조치가 준비되었지만 아직 실행되지 않았습니다.');
+        addIdentifier('확인 기한', confirmationExpiresAt);
+      } else if (status === 'executing') {
+        addText('p', '요청을 서버에 전달 중입니다. 결과는 아직 확인되지 않았습니다.');
+        addText('p', '전달 중이며 완료 또는 성공으로 확인된 상태가 아닙니다.');
+      } else if (status === 'pending') {
+        addText('p', '서버가 요청을 접수해 처리 중입니다(pending). 접수 응답(ACK)은 조치 효과를 뜻하지 않으며 결과는 아직 확인되지 않았습니다.');
+      } else if (status === 'succeeded') {
+        if (effectConfirmed) {
+          addText('p', '연동 시스템이 조치 효과를 확인했습니다.');
+          addIdentifier('관측 시각', observation.observedAt);
+          addText('p', 'effectApplied: true');
+        } else {
+          addText('p', '조치 효과를 확인할 수 없어 결과 불명으로 처리합니다. 성공이나 효과 없음으로 판단하지 않습니다.');
+          addText('p', recheckGuidance);
+        }
+      } else if (status === 'denied') {
+        addText('p', `연동 시스템이 조치를 거절했습니다: ${safeMessage(message)}`);
+      } else if (status === 'failed') {
+        addText('p', `조치 처리가 실패했습니다: ${safeMessage(message)}`);
+      } else if (status === 'unknown') {
+        addText('p', '조치 결과를 확인할 수 없습니다. 성공이나 효과 없음으로 판단하지 않습니다.');
+        addText('p', recheckGuidance);
+      } else if (status === 'expired') {
+        addText('p', '확인 기한이 지났습니다. 조치를 진행하려면 제공 화면에서 다시 준비해야 합니다.');
+      } else if (status === 'error') {
+        addText('p', `요청이 처리되지 않았습니다. 오류 코드: ${safeCode(error?.code)} · ${safeMessage(error?.message)}`);
+      } else {
+        addText('p', '조치 상태를 확인할 수 없습니다. 성공이나 효과 없음으로 판단하지 않습니다.');
+        addText('p', recheckGuidance);
+      }
+
+      addIdentifier('사건 ID', event?.id);
+      if (Array.isArray(event?.evidence)) {
+        const ids = event.evidence
+          .filter((item) => item && item.id !== undefined && item.id !== null)
+          .map((item) => displayValue(item.id));
+        if (ids.length > 0) addText('p', `근거 ID: ${ids.join(', ')}`);
+      }
+      addIdentifier('조치 ID', actionId);
+      addIdentifier('대상 ID', target?.id);
+      addIdentifier('대상 세대', target?.generation);
+      addIdentifier('요청 ID', receipt?.requestId);
+      addIdentifier('접수 ID', receipt?.receiptId);
+      addIdentifier('버전', receipt?.version);
+
+      // 식별 표식은 입력된 식별자를 연결하며, 효과 확인 여부는 상태 문구로만 나타낸다.
+      if (event?.id !== undefined && event.id !== null && event.id !== '') {
+        root.setAttribute('data-student-action-event', String(event.id));
+      }
+      if (receipt?.requestId !== undefined && receipt.requestId !== null && receipt.requestId !== '') {
+        root.setAttribute('data-student-action-request', String(receipt.requestId));
+      }
+      return root;
+    },
   };
 }
