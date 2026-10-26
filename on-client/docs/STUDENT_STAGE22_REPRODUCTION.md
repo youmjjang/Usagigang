@@ -85,10 +85,64 @@ git diff --name-only 4639ab2cb3e0ae12b52f3da4debd60777220c00d HEAD
 git diff --exit-code 4639ab2cb3e0ae12b52f3da4debd60777220c00d HEAD -- on-client/student on-client/src on-client/public on-client/vendor on-client/tools on-client/package.json on-client/.env.example
 ~~~
 
-문서만 달라야 기본 실행 증거를 코드 변경 없이 연결할 수 있습니다. 코드·실행 설정·의존성이 바뀌면 새 최종 커밋을 별도 폴더에 받아 다시 재현해야 합니다. 최종 제출 커밋 자체에서의 실행은 아직 수행하지 않았고, 문서 변경만 있는지 최종 Git 대조도 커밋 후 남아 있습니다. 이 한계를 숨기거나 최종 버전 전체 성공으로 표현하지 않습니다.
+문서만 달라야 기본 실행 증거를 코드 변경 없이 연결할 수 있습니다. 코드·실행 설정·의존성이 바뀌면 새 최종 커밋을 별도 폴더에 받아 다시 재현해야 합니다. 아래 8절에서 피드백 대상 커밋 자체의 별도 폴더 실행과 코드 차이 확인 결과를 추가합니다. 기록을 보완하는 커밋은 실행 코드 변경 없이 문서만 변경해야 하며, 새 커밋에 코드 차이가 있으면 다시 검증합니다.
 
 21·22단계는 과제 화면에 저장소 URL과 최종 40자리 커밋을 직접 입력합니다. 비공개 원문은 해당 단계 화면의 「비공개 저장소 원문 준비 방법」과 「원문 전달 도구 받기」를 따릅니다. 원문 전달 도구 명령은 추측하지 않습니다. 도구·JSON은 프로젝트 밖에 두고 생성 JSON을 해당 단계에 선택합니다. 전달만 실패하면 기존 접수를 유지하고 「원문만 다시 보내기」를 사용합니다.
 
 ## 7. 이번 기록 편집의 검증 범위
 
 Codex가 두 폴더의 HEAD 일치와 편집 전 작업 트리가 깨끗함, package.json의 버전·명령, 학생 함수 존재를 확인했습니다. 실제 서버 실행·브라우저 표시·종료·재실행은 위 학생 진술로 기록했습니다. Codex가 대신 실행했다고 쓰지 않습니다. 실제 AI·SDP·OSV 요청, 보안 조치, 데이터 복원, 커밋·푸시·제출은 이번 편집에서 수행하지 않았습니다.
+
+## 8. 피드백 대상 커밋의 직접 재검증 (2026-10-26 KST)
+
+기존 학생 관찰 기록은 4639ab2 커밋의 이력으로 보존합니다. 아래는 Codex가 도구로 직접 실행한 별도 결과이며, 학생 브라우저 관찰을 새 커밋의 관찰로 바꾸지 않습니다.
+
+- 검증 커밋: `cc24a4547f2352d72db57f405fddb1c9f576fa30` (피드백 대상 전체 해시)
+- 별도 폴더: C:\Users\User\Documents\Codex\우사기강-재현-4639ab2
+- 복제 폴더가 변경 없는 상태임을 확인한 뒤 로컬 origin에서 fetch, 해당 해시로 detached checkout했습니다. 원래 프로젝트는 그대로 보존했습니다.
+- 4639ab2와 이 커밋의 Git diff 결과: `on-client/docs/STUDENT_STAGE22_REPRODUCTION.md`만 변경. 실행 코드·설정 견본·의존성 선언 차이 없음.
+- Node.js v24.19.0으로 복제 폴더에서 node --check student/extension.mjs: 종료 코드 0.
+- 서버를 node src/server.mjs로 실행하고 ON_PORT=5197을 해당 자식 프로세스에만 지정했습니다. 기존 학생 서버와 포트 충돌을 피하기 위한 검증 포트이며 기본 설정 파일은 바꾸지 않았습니다.
+- 첫 실행: HTTP GET /, /app.js, /student/extension.mjs 모두 정상 응답. 루트 응답의 HTML 확인. 시작 로그: 케셰브 연결 확인: http://127.0.0.1:5197
+- 직접 시작한 자식 서버만 종료하고 종료 이벤트를 기다린 뒤, 같은 커밋으로 두 번째 실행: 동일 3개 경로 정상 응답. 두 번째 서버도 종료했습니다. 기존 사용자의 서버는 종료하지 않았습니다.
+- 이는 HTTP 실행·종료·재시작 검사이며 브라우저 DOM 조작이나 로그인·AI·SDP·OSV·집행 성공 검사가 아닙니다. 새 커밋의 브라우저 육안 관찰은 미확인입니다.
+- 증거: 이 대화의 실행 도구 출력에 Syntax check PASS, Cycle 1/2 HTTP page and JS assets PASS와 시작 로그가 남아 있습니다. 개별 초 단위 실행 시각은 별도로 수집하지 않았습니다.
+
+### 실행 원문의 식별
+
+코드·런처·화면·전송 모듈·package JSON·설정 견본 총 43개 파일을 경로순으로 정렬하고, 각 파일의 SHA-256과 경로를 결합한 목록의 SHA-256은 다음과 같습니다.
+
+`92de8f726c79d8f73221345d776e75ead93b44a0d8231a48ef0aafdeeac31dc7`
+
+이 값은 문서의 커밋 해시를 자기 자신 안에 적을 수 없는 문제를 피하면서 실행 원문의 일치 여부를 대조하기 위한 보조 식별자입니다. 최종 제출 커밋의 문서만 바뀌었는지 Git diff로 확인하고 이 파일 집합이 같으면 위 실행 결과의 코드 대상이 유지됩니다. 학생 함수별 실제 연결 결과를 전체 성공으로 합산하지 않습니다.
+
+## 9. 조치 SQLite 백업·복원 절차 (운영자용 계획, 미실행)
+
+src/actions/store.mjs는 node:sqlite의 DatabaseSync로 명시된 기존 DB를 엽니다. action-startup-config.mjs는 실제 존재하는 절대 databasePath와 SQLite 헤더를 확인합니다. 새 임의 DB를 만들어 설정하거나 운영 자격을 학생이 마련하지 않습니다. 실제 저장 경로·DB 접근 권한·sqlite3 CLI 설치 여부는 미확인입니다. 아래는 담당자가 경로와 도구를 확인한 후 수행할 절차이며 이번에 운영 DB에 실행하지 않았습니다.
+
+1. 담당자가 승인된 설정의 databasePath, DB를 쓰는 모든 프로세스, 백업 책임자·시각·보관 위치를 비공개 작업 기록에 확인합니다. 백업은 Git 밖의 접근 제한 폴더에 새 파일로 만들고 기존 백업을 덮어쓰지 않습니다.
+2. 조치 접수와 DB 쓰기를 중지하고 관련 연결을 정상 종료합니다. 단순히 앱 창 하나를 닫는 것으로 모든 DB 쓰기 중단을 가정하지 않습니다. 실행 중 본체 파일만 복사하거나 -wal/-shm 파일을 삭제하지 않습니다.
+3. 승인된 SQLite CLI로 존재하는 원본을 연 뒤 .backup으로 별도 스냅샷을 만듭니다. SQLite backup 기능을 사용해 WAL에 남은 커밋을 누락하는 단순 파일 복사를 피합니다. 예시의 경로는 담당자가 확인한 값으로 바꿉니다. 원본이 존재하지 않으면 중단해 빈 DB를 생성하지 않습니다.
+
+~~~text
+sqlite3 "<담당자가 확인한 기존 DB 절대경로>"
+.backup '<새 백업 파일 경로>'
+.quit
+~~~
+
+4. 백업 DB를 읽기 전용으로 열어 아래 SQL을 검사합니다. integrity_check는 ok, foreign_key_check는 결과 행 없음이어야 합니다. 백업의 SHA-256·시각·DB/앱 버전·각 테이블 건수·최대 audit seq를 제한된 운영 기록에 남깁니다. 공개 문서에는 실제 데이터나 scope_json·command_json·confirmation_hash·result_json 내용을 붙이지 않습니다.
+
+~~~sql
+PRAGMA integrity_check;
+PRAGMA foreign_key_check;
+SELECT COUNT(*) FROM alekov_action_intents;
+SELECT COUNT(*) FROM alekov_action_state;
+SELECT COUNT(*), MAX(seq) FROM alekov_action_audit;
+~~~
+
+5. 세 테이블이 없는 미사용 DB라면 조치 이력 미생성을 기록하고 임의로 스키마를 생성하지 않습니다. 일반 백업 검사 실패·잠금 오류가 나면 작업을 중단하고 원본을 유지합니다. 보관 기간·암호화·별도 위치 보관은 데이터 소유자의 정책으로 정합니다.
+6. 복원 시험은 운영 DB와 분리된 새 위치에 백업을 복사해 수행합니다. SHA-256, integrity_check·foreign_key_check, 세 테이블 건수와 최대 audit seq를 백업 기록과 대조합니다. request_id·receipt_id·version 및 confirmation_consumed 보존 여부는 담당자만 확인하고 민감 행을 출력하지 않습니다.
+7. 과거 DB 복원은 이미 실행된 조치나 소비한 확인 상태를 과거로 돌릴 수 있습니다. 복원본을 실제 집행기에 연결하거나 과거 요청을 재전송하지 않습니다. 원천 시스템 결과와 대조해 중복 집행 방지 상태를 정리하기 전까지 조치는 비활성으로 유지합니다.
+8. 실제 복구 전에는 운영자 승인, 모든 작성 프로세스 종료, 현재 DB의 별도 백업, 잔여 WAL/SHM의 담당자 처리, 복원 경로·소유권·접근권한 확인을 완료합니다. 원본 위 즉시 덮어쓰기를 하지 않고 복원된 기존 SQLite 파일로의 설정 전환을 승인된 절차로 진행합니다. 조회로 복원 상태를 확인하고 실패 시 보존한 원본으로 되돌립니다.
+
+실제 백업·복원 시험 결과는 미확인입니다. 코드 복제는 SQLite 업무 데이터 복원이 아닙니다. 참고: [SQLite Backup API](https://www.sqlite.org/backup.html), [SQLite CLI](https://www.sqlite.org/cli.html).
