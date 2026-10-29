@@ -1,0 +1,10 @@
+{
+  "schema": "alekov.student-appearance.v1",
+  "appName": "우사기강",
+  "dashboardPreset": "student-first",
+  "palette": {
+    "accent": "#3575D5",
+    "background": "#F2F7FC",
+    "surface": "#FFFFFF"
+  }
+}

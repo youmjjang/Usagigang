@@ -1,13 +1,14 @@
-/* Alekov 학생 클라이언트 — 자체 작성 CSS. 외부 폰트·라이브러리·이미지 없음. PC 1280px 이상 기준. */
+/* Alekov 학생 클라이언트 — 자체 작성 CSS. 외부 폰트·라이브러리·이미지 없음. PC 1280px 이상 기준.
+   PC에서 확대해 유효 폭이 좁아지면 맨 아래 미디어 쿼리가 한 열 배치로 바꾼다. 100% PC 배치는 그대로다. */
 
 :root {
-  --bg: #f5f6f8;
+  --bg: #F2F7FC;
   --surface: #ffffff;
-  --border: #d9dde3;
-  --text: #1c2430;
-  --muted: #5a6472;
-  --accent: #2357c6;
-  --accent-soft: #e7eefc;
+  --border: #D9E5F2;
+  --text: #25374A;
+  --muted: #60768D;
+  --accent: #3575D5;
+  --accent-soft: #E5F1FF;
   --allow: #1d7a3e;
   --allow-soft: #e5f4ea;
   --deny: #b42318;
@@ -16,8 +17,8 @@
   --challenge-soft: #fff4e0;
   --unknown: #4b5563;
   --unknown-soft: #eceff3;
-  --student: #6b3fb3;
-  --student-soft: #f3edfb;
+  --student: #3575D5;
+  --student-soft: #EAF3FF;
   --radius: 8px;
   --focus: 0 0 0 3px #f5b400;
   font-family: system-ui, -apple-system, "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
@@ -28,12 +29,19 @@
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; min-width: 1024px; }
+body { margin: 0; }
 h1 { font-size: 1.5rem; margin: 0 0 16px; }
 h2 { font-size: 1.05rem; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 h3 { font-size: 1rem; margin: 0; }
 h4 { font-size: 0.9rem; margin: 0 0 4px; color: var(--muted); }
 [hidden] { display: none !important; }
+
+/* 기존 보호 현황 안의 로컬 PC 조회 카드. 학생 꾸밈 변수와 같은 색을 사용한다. */
+#pc-status .pc-auto { display: inline-flex; align-items: center; flex-wrap: wrap; max-width: 100%; margin-left: 16px; gap: 6px; }
+#pc-status .pc-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+#pc-status .pc-metric { padding: 14px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); }
+#pc-status .pc-value { font-size: 1.15rem; font-weight: 650; margin: 8px 0; overflow-wrap: anywhere; }
+#pc-status .pc-metric[data-state="unavailable"] .pc-value { color: var(--unknown); }
 
 :focus-visible { outline: none; box-shadow: var(--focus); }
 
@@ -46,17 +54,18 @@ h4 { font-size: 0.9rem; margin: 0 0 4px; color: var(--muted); }
 
 /* 상단 */
 .topbar {
-  display: flex; justify-content: space-between; align-items: center;
-  height: 60px; padding: 0 24px;
+  display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px 16px;
+  min-height: 60px; padding: 8px 24px;
   background: var(--surface); border-bottom: 1px solid var(--border);
 }
-.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; min-width: 0; }
+.brand-name { min-width: 0; overflow-wrap: anywhere; }
 .brand-mark {
   display: inline-grid; place-items: center; width: 32px; height: 32px;
   border-radius: 50%; background: var(--accent); color: #fff; font-size: 0.95rem;
 }
 .brand-name small { font-weight: 400; color: var(--muted); margin-left: 6px; }
-.topbar-status { display: flex; align-items: center; gap: 12px; }
+.topbar-status { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; min-width: 0; }
 .checked-at { color: var(--muted); font-size: 0.85rem; }
 
 .mode-badge {
@@ -66,23 +75,47 @@ h4 { font-size: 0.9rem; margin: 0 0 4px; color: var(--muted); }
 .mode-badge[data-mode="connected"] { background: var(--allow-soft); color: var(--allow); }
 .mode-badge[data-mode="demo"] { background: var(--challenge-soft); color: var(--challenge); }
 .mode-badge[data-mode="disconnected"] { background: var(--deny-soft); color: var(--deny); }
+/* PC 전용 실행 표시는 오류도 성공도 아니므로 중립 색을 쓴다. 꾸밈 색(--accent)으로 바뀌지 않는다. */
+.mode-badge[data-ui-mode="local-pc"] { background: var(--unknown-soft); color: var(--unknown); }
+/* 다시 불러오는 동안의 「실행 형태 확인 중…」도 판정이 아니므로 중립 색이다. */
+.mode-badge[data-refresh="checking"] { background: var(--unknown-soft); color: var(--unknown); }
+
+/* 내 PC 점검 모드 안내. 기존 제공 카드 모양을 그대로 쓰고, 확대해도 글이 잘리지 않게 줄바꿈만 허용한다. */
+.local-pc-notice { border-left: 4px solid var(--unknown); overflow-wrap: anywhere; }
+.local-pc-notice:focus { outline: none; }
+.local-pc-notice:focus-visible { box-shadow: var(--focus); }
+.local-pc-lead { margin: 0 0 10px; font-weight: 600; }
+.local-pc-notice .connect-steps { color: var(--text); }
+.local-pc-notice .muted { margin: 0; }
 
 /* 배치 */
 .layout {
   display: grid; grid-template-columns: 220px minmax(0, 1fr);
   min-height: calc(100vh - 60px);
 }
-.sidebar { background: var(--surface); border-right: 1px solid var(--border); padding: 16px 12px; }
+/* 긴 관제 화면을 스크롤해도 왼쪽 메뉴가 보이도록 위치만 고정합니다. */
+.sidebar {
+  background: #EDF4FC;
+  border-right: 1px solid var(--border);
+  padding: 16px 12px;
+  min-width: 0;
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100vh;
+  overflow-y: auto;
+}
 #nav { display: flex; flex-direction: column; gap: 4px; }
 #nav [role="tab"] {
   text-align: left; padding: 10px 12px; border: 0; border-radius: var(--radius);
   background: transparent; color: var(--text); font: inherit; cursor: pointer;
+  overflow-wrap: anywhere;
 }
-#nav [role="tab"]:hover { background: var(--bg); }
-#nav [role="tab"][aria-selected="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+#nav [role="tab"]:hover { background: #DFEDFD; color: #24599C; }
+#nav [role="tab"][aria-selected="true"] { background: #D8E9FF; color: #24599C; font-weight: 700; box-shadow: inset 3px 0 0 #3575D5; }
 .sidebar-note { color: var(--muted); font-size: 0.8rem; margin: 16px 4px 0; }
 
-main { padding: 24px 32px 48px; max-width: 1400px; }
+main { padding: 24px 32px 48px; max-width: 1400px; min-width: 0; }
 main:focus { outline: none; }
 
 .notice {
@@ -99,8 +132,9 @@ main:focus { outline: none; }
 /* 카드 */
 .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; }
 .card {
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 16px 18px; margin-bottom: 16px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  padding: 16px 18px; margin-bottom: 16px; min-width: 0;
+  box-shadow: 0 3px 16px rgba(35,74,120,.035);
 }
 .grid-2 > .card { margin-bottom: 0; }
 .card.student { border-left: 4px solid var(--student); }
@@ -115,12 +149,13 @@ main:focus { outline: none; }
 .muted { color: var(--muted); font-size: 0.875rem; }
 .row { display: flex; gap: 8px; flex-wrap: wrap; }
 
-.identity, .kv { display: grid; grid-template-columns: 90px 1fr; gap: 6px 12px; margin: 0; }
-.identity dt, .kv dt { color: var(--muted); }
+.identity, .kv { display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: 6px 12px; margin: 0; }
+.identity dt, .kv dt { color: var(--muted); overflow-wrap: anywhere; }
 .identity dd, .kv dd { margin: 0; overflow-wrap: anywhere; }
 
 .plain-list { list-style: none; margin: 0; padding: 0; }
-.plain-list li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.plain-list li { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.plain-list li > * { min-width: 0; overflow-wrap: anywhere; }
 .plain-list li:last-child { border-bottom: 0; }
 .item-title { font-weight: 500; overflow-wrap: anywhere; }
 
@@ -128,6 +163,7 @@ main:focus { outline: none; }
 .btn {
   font: inherit; padding: 7px 14px; border-radius: var(--radius);
   border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer;
+  max-width: 100%; overflow-wrap: anywhere;
 }
 .btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
 .btn:disabled { cursor: not-allowed; opacity: 0.55; }
@@ -136,7 +172,9 @@ main:focus { outline: none; }
 .app-button { width: 100%; text-align: left; }
 
 /* 상태 표시 */
-.state { margin: 0; padding: 10px 12px; border-radius: var(--radius); font-size: 0.9rem; }
+.state { margin: 0; padding: 10px 12px; border-radius: var(--radius); font-size: 0.9rem; overflow-wrap: anywhere; }
+/* 내 PC 점검 모드에서 연결 기능이 빠져 확인하지 않은 현재 로그인 칸. 오류색이 아닌 중립 회색이다. */
+.identity-local-pc { margin-top: 10px; }
 .state-loading { background: var(--accent-soft); color: var(--accent); }
 .state-empty { background: var(--unknown-soft); color: var(--unknown); }
 .state-error { background: var(--deny-soft); color: var(--deny); }
@@ -207,3 +245,133 @@ main:focus { outline: none; }
 .state-ok { background: var(--allow-soft); color: var(--allow); }
 .ai-result[data-state="connected"] { border-left: 3px solid var(--allow); padding-left: 12px; }
 .ai-result[data-state="unknown"] { border-left: 3px solid var(--unknown); padding-left: 12px; }
+
+/* 학생 꾸밈(student/appearance.json). 학생 색은 /student/appearance.css 의 --accent·--accent-soft·--bg·--surface 만 바꾼다.
+   allow/deny/challenge/unknown/student/focus 등 상태 의미 색은 여기서 고정하며 꾸밈으로 바꾸지 않는다.
+   첫 화면 그림은 흐름 안의 장식(비상호작용)이라 메뉴·상태·학생 slot 을 덮지 않는다. 배치는 DOM 순서로만 바꾼다(CSS order 없음). */
+.appearance-notice {
+  margin: 0 0 16px; padding: 10px 14px; border-radius: var(--radius); font-size: 0.9rem;
+  background: var(--unknown-soft); color: var(--unknown); border: 1px solid var(--unknown);
+}
+.start-picture { margin: 0 0 16px; pointer-events: none; user-select: none; }
+.start-picture-image { display: block; max-width: 100%; max-height: 240px; width: auto; height: auto; border-radius: var(--radius); }
+[data-appearance-preset="compact"] main { padding-top: 16px; }
+[data-appearance-preset="compact"] h2 { margin-bottom: 8px; }
+[data-appearance-preset="compact"] .card { padding: 10px 12px; margin-bottom: 10px; }
+[data-appearance-preset="compact"] .grid-2 { gap: 10px; margin-bottom: 10px; }
+[data-appearance-preset="compact"] .grid-2 > .card { margin-bottom: 0; }
+
+/* PC 확대 재배치. 1024px 이상(100% PC 배치)에는 적용되지 않는다. 메뉴는 위쪽으로 옮겨도 세로 탭 그대로라
+   위·아래 방향키 탐색과 aria-orientation="vertical" 계약이 바뀌지 않는다. 큰 표·도움정보 칸만 제 안에서 가로로 넘친다. */
+@media (max-width: 860px) {
+  .topbar { padding: 8px 16px; }
+  .layout { grid-template-columns: minmax(0, 1fr); min-height: 0; }
+  .sidebar {
+    position: static;
+    height: auto;
+    overflow-y: visible;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+    padding: 12px;
+  }
+  .sidebar-note { margin-top: 8px; }
+  main { padding: 16px 16px 40px; }
+  .grid-2 { grid-template-columns: minmax(0, 1fr); }
+  .connect-layout { flex-direction: column; }
+  .connect-art { flex: none; }
+}
+@media (max-width: 600px) {
+  #pc-status .pc-metrics { grid-template-columns: minmax(0, 1fr); }
+  #pc-status .pc-auto { margin-left: 0; }
+  .identity, .kv { grid-template-columns: minmax(0, 1fr); gap: 2px 0; }
+  .identity dd, .kv dd { margin-bottom: 6px; }
+  .art-explain { float: none; margin: 0 0 8px; }
+}
+
+
+/* ========================================================================
+   우사기강 — 보안 환경 본문 재배치 (메뉴, API, 제공 JS 변경 없음)
+   원본 제공 화면의 element ID / test ID / 상태 뜻을 모두 유지합니다.
+   ======================================================================== */
+.security-workspace-heading { margin: 28px 0 14px; }
+.security-eyebrow { color: #3575D5; font-size: .69rem; font-weight: 800; letter-spacing: .15em; }
+.security-workspace-heading h2 { display: block; color: #26334b; font-size: 1.25rem; letter-spacing: -.03em; margin: 5px 0 4px; }
+.security-workspace-heading p { margin: 0; color: #78879c; font-size: .85rem; }
+.security-environment-grid { gap: 15px; }
+.security-environment-grid > .security-summary-card { padding: 21px 23px; background: #fff; border: 1px solid #DCE7F3; border-radius: 15px; box-shadow: 0 6px 20px rgba(48,60,103,.035); min-height: 164px; }
+.security-summary-head { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.security-summary-head h2 { margin: 0; color: #29354b; font-size: 1rem; }
+.security-icon { width: 37px; height: 37px; display: inline-grid; flex: none; place-items: center; border-radius: 11px; background: #E8F2FF; color: #3575D5; }
+.security-icon svg, .security-help-icon svg { width: 19px; height: 19px; }
+.security-session .security-icon { background: #eaf4ff; color: #5f91ce; }
+.security-environment-grid .state { padding: 11px 13px; border-radius: 9px; }
+.security-environment-grid .plain-list li { padding: 8px 0; }
+.security-environment-grid .muted { font-size: .79rem; }
+.security-connect-card { padding: 0; overflow: hidden; background: #fff; border: 1px solid #DCE7F3; border-radius: 15px; box-shadow: 0 6px 20px rgba(48,60,103,.035); }
+.security-connect-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 22px 25px; border-bottom: 1px solid #edf0f5; }
+.security-connect-heading { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.security-connect-heading h2 { display: block; margin: 0; font-size: 1.16rem; color: #26334b; letter-spacing: -.03em; }
+.security-connect-heading p { margin: 3px 0 0; color: #8895a9; font-size: .82rem; }
+.security-neutral-badge { background: #EAF3FF; color: #3575D5; border: 1px solid #D3E4FA; border-radius: 999px; padding: 5px 11px; font-size: .71rem; font-weight: 700; }
+.security-connect-layout { padding: 25px; gap: 8px; }
+.security-connect-body { min-width: 0; }
+.security-connection-step { position: relative; display: grid; grid-template-columns: 39px minmax(0,1fr); gap: 15px; border: 0; padding: 0; margin: 0; }
+.security-connection-step:first-child { padding-bottom: 33px; }
+.security-connection-step:first-child::after { content: ''; position: absolute; top: 39px; bottom: 1px; left: 18px; width: 1px; background: #D8E6F7; }
+.security-step-number { width: 38px; height: 38px; display: grid; place-items: center; border: 1px solid #CFE2F9; background: #E8F2FF; color: #3575D5; border-radius: 50%; font-weight: 800; font-size: .86rem; z-index: 1; }
+.security-step-two .security-step-number { background: #F6F9FD; border-color: #e9ebf2; color: #8e99ab; }
+.security-step-content { min-width: 0; }
+.security-step-content h3 { display: flex; align-items: center; gap: 11px; flex-wrap: wrap; color: #29354b; font-size: 1rem; line-height: 1.5; margin: 5px 0 4px; }
+.security-step-label { color: #4B75AE; background: #ECF5FF; border: 1px solid #D5E7FA; padding: 2px 8px; border-radius: 999px; font-weight: 600; font-size: .67rem; }
+.security-step-content > .muted { margin: 0 0 16px; color: #8390a4; font-size: .8rem; line-height: 1.7; }
+.security-action-row { gap: 7px; }
+.security-connect-card .btn, .security-help-section .btn { min-height: 38px; background: #fff; border-radius: 9px; border: 1px solid #dfe4ee; color: #56657f; font-size: .82rem; padding: 8px 12px; }
+.security-connect-card .btn:hover:not(:disabled), .security-help-section .btn:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); }
+.security-connect-card .security-primary-action:not(:disabled) { background: var(--accent); color: #fff; border-color: var(--accent); }
+/* 강조 버튼: 공통 hover 규칙이 흰 글자를 가리지 않도록 유지 */
+.security-connect-card .btn.security-primary-action:hover:not(:disabled),
+.security-connect-card .btn.security-primary-action:focus-visible:not(:disabled) {
+  background: #265EBA;
+  border-color: #265EBA;
+  color: #fff;
+}
+.security-connect-card .security-primary-action:disabled { background: #F0F5FB; color: #8095AD; }
+.security-step-content > .ai-result { margin: 14px 0 0; }
+.security-step-content > .ai-result .state { border-radius: 9px; font-size: .8rem; padding: 11px 14px; }
+.security-step-guide { border-top: 1px solid #edf0f6; margin-top: 16px; padding-top: 12px; font-size: .79rem; color: #7b89a0; }
+.security-step-guide summary { color: #3575D5; font-weight: 650; cursor: pointer; width: max-content; max-width: 100%; }
+.security-step-guide[open] summary { margin-bottom: 12px; }
+.security-step-guide p { margin: 6px 0 10px; line-height: 1.7; }
+.security-step-guide ol { line-height: 1.9; padding-left: 20px; font-size: .8rem; }
+.security-technical-help { margin-left: 53px; }
+.security-technical-help .row { margin-top: 10px; }
+.security-connect-card .connect-art { flex: 0 0 85px; }
+.security-connect-card .art-connect { width: 85px; }
+.security-help-section { margin: 18px 0 24px; }
+.security-help-details { border: 1px solid #DCE7F3; background: #fff; border-radius: 15px; overflow: hidden; box-shadow: 0 6px 20px rgba(48,60,103,.035); }
+.security-help-details > summary { display: flex; align-items: center; gap: 12px; list-style: none; cursor: pointer; padding: 18px 23px; }
+.security-help-details > summary::-webkit-details-marker { display: none; }
+.security-help-icon { width: 35px; height: 35px; border-radius: 10px; background: #eef4ff; color: #7a91bd; display: grid; place-items: center; flex: none; }
+.security-help-title { min-width: 0; }
+.security-help-title strong { display: block; font-size: .92rem; color: #2c3950; }
+.security-help-title small { display: block; color: #91a0b3; font-size: .73rem; }
+.security-help-chevron { color: #8898ac; margin-left: auto; font-size: 1.6rem; line-height: 1; }
+.security-help-details[open] .security-help-chevron { transform: rotate(180deg); }
+.security-help-content { padding: 18px 23px 22px; border-top: 1px solid #edf0f5; }
+.security-help-content > .muted { margin: 0 0 12px; color: #78879d; }
+.security-help-content .diag-output { margin-top: 12px; }
+@media (max-width: 860px) {
+  .security-connect-header { padding: 20px 18px; }
+  .security-connect-layout { padding: 20px 18px; }
+  .security-help-details > summary { padding: 15px 18px; }
+  .security-help-content { padding: 16px 18px 18px; }
+}
+@media (max-width: 600px) {
+  .security-connect-header { flex-direction: column; align-items: flex-start; }
+  .security-connection-step { grid-template-columns: 32px minmax(0, 1fr); gap: 10px; }
+  .security-step-number { width: 32px; height: 32px; }
+  .security-connection-step:first-child::after { left: 15px; top: 32px; }
+  .security-technical-help { margin-left: 42px; }
+  .security-environment-grid > .security-summary-card { padding: 17px 18px; }
+  .security-connect-card .connect-art { display: none; }
+}
